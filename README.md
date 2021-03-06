@@ -2,7 +2,7 @@
 
 ###### *read this in HonestTrailers voice:*
 ### In a world full of chrome windows... where fat foxes are running slow... have you ever dreamed of transforming your html to exe without touching a single electron?
-### Furthermore, compressed and with plugin capabilities to bridge the gap to the desktop's OS ?
+### Furthermore, compressed and with plugin capabilities to bridge the gap to the desktop's OS?
 ## Well, dream no more! because I give you **Too Little Too Late** !
 ###### *insert youtube comercial here*
 
