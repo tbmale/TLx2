@@ -46,7 +46,10 @@ namespace TLx2
 			var mainguidbytes=Encoding.ASCII.GetBytes(mainguid);
 			int index=-1;
 			byte[] exebytes;
-			using(var s=File.Open(thisass.Location,FileMode.Open,FileAccess.Read)){
+			var tfp=Path.GetTempFileName();
+			try{File.Delete(tfp);}catch(Exception ex){MessageBox.Show(ex.GetType().Name+":\n"+ex.Message);Environment.Exit(-1);}
+			try{File.Copy(thisass.Location,tfp);}catch(Exception ex){MessageBox.Show(ex.GetType().Name+":\n"+ex.Message);Environment.Exit(-1);}
+			using(var s=File.Open(tfp,FileMode.Open,FileAccess.Read)){
 				var ms=new MemoryStream();
 				s.CopyTo(ms);
 				exebytes=ms.ToArray();
@@ -57,6 +60,7 @@ namespace TLx2
 					break;
 				}
 			}
+			File.Delete(tfp);
 			//MessageBox.Show(string.Format("{0}: {1}",mainguid,index));
 			if(opts.ContainsKey("add") && File.Exists(opts["add"][0])){
 				var fp=File.Open(Path.GetFileNameWithoutExtension(opts["add"][0])+".exe",FileMode.OpenOrCreate);
