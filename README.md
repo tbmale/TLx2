@@ -1,13 +1,15 @@
 # TLx2
 
 ###### *read this in HonestTrailers voice:*
-### In a world full of chrome windows... where fat foxes are running slow... have you ever dreamed of transforming your html to exe ? compressed and with plugin capabilities to bridge the gap to the desktop's OS ?
+### In a world full of chrome windows... where fat foxes are running slow... have you ever dreamed of transforming your html to exe without touching a single electron?
+### Furthermore, compressed and with plugin capabilities to bridge the gap to the desktop's OS?
 ## Well, dream no more! because I give you **Too Little Too Late** !
 ###### *insert youtube comercial here*
 
 TLx2 is basically a winforms application with an somehow twiked webbrowser embedded object
 
 For embedding your own html in it you only have to do `Tlx2.exe -add yours.html`.
+
 This will result in a new *yours.exe* that will contain a compressed version of your html to be rendered at runtime.
 
 If you throw in the same directory one or more .NET dlls containing the `TLx2` namespace, all the `public static` methods of all the `public static class ScriptExtensions` classes from the `TLx2` namespace in those dlls, will be available inside your html's javascript as `csharp.<mysoontobeawsomemethod>()`.
