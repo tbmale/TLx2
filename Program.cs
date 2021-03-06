@@ -41,7 +41,7 @@ namespace TLx2
 			var thisass=Assembly.GetExecutingAssembly();
 			string thispath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 			foreach (string dll in Directory.GetFiles(thispath, "*.dll"))
-				Assembly.LoadFile(dll);
+				try{Assembly.LoadFile(dll);}catch(Exception){};
 			mainguid = "mainguid:"+thisass.GetCustomAttribute<GuidAttribute>().Value;
 			var mainguidbytes=Encoding.ASCII.GetBytes(mainguid);
 			int index=-1;
