@@ -20,7 +20,7 @@ for (var i in csharp.externalmethodnames) {
       var result = window.external.callmethod('"+ csharp.externalmethodnames[i] + "', JS2VBArray(args));\
       var ret = IsValidJSONString(result);\
       return ret ? ret : result;\
-  } catch (ex) { return 'invoke error: ' + ex; }\
+  } catch (ex) { alert('invoke error: ' + ex); }\
 })");
   } catch (ex) { alert(ex);break; }
 }

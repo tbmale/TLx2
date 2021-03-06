@@ -23,10 +23,10 @@ namespace TLx2
 	public static class ScriptExtensions
 	{
 		[DllImport("kernel32.dll", SetLastError=true, ExactSpelling=true)]
-		public static extern bool FreeConsole();
+		static extern bool FreeConsole();
 		[DllImport("kernel32.dll")]
 		[return: MarshalAs(UnmanagedType.Bool)]
-		public static extern bool AllocConsole();
+		static extern bool AllocConsole();
 		[DllImport("kernel32.dll")]
 		static extern bool AttachConsole(int pid);
 
@@ -85,9 +85,6 @@ namespace TLx2
 				return new ResultValue(ex.Message).Json;
 			}
 			return new ResultValue{error=false,value=""}.Json;
-		}
-		public static void appclose(){
-			Environment.Exit(1);
 		}
 		public static void alert(string message,string title="Message"){
 			MessageBox.Show(message,title);
