@@ -107,7 +107,7 @@ namespace TLx2
 				using ( var s=thisass.GetManifestResourceStream( "index.html" ) )
 					using ( var r = new StreamReader( s ) )
 						html = r.ReadToEnd();
-				using ( var s=thisass.GetManifestResourceStream( "invoke.js" ) )
+				using ( var s=thisass.GetManifestResourceStream( "invoke.html" ) )
 					using ( var r = new StreamReader( s ) )
 						html += r.ReadToEnd();
 			}
@@ -126,6 +126,7 @@ namespace TLx2
 			Application.Run(new MainForm());
 		}
 		static void Application_ApplicationExit(object o, EventArgs args){
+			Console.WriteLine("{0},{1}",o,args);
 //			WebRequest.CreateHttp(new Uri(String.Format("http://localhost:{0}/stop",_port))).GetResponseAsync();
 		}
 		static Dictionary<string,List<string>> getopts(string[] args){

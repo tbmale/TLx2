@@ -87,8 +87,8 @@
     <EmbeddedResource Include="index.html">
       <LogicalName>index.html</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="invoke.js">
-      <LogicalName>invoke.js</LogicalName>
+    <EmbeddedResource Include="invoke.html">
+      <LogicalName>invoke.html</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

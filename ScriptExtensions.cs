@@ -89,6 +89,11 @@ namespace TLx2
 		public static void alert(string message,string title="Message"){
 			MessageBox.Show(message,title);
 		}
+		public static int prompt(string message,string title="Message",string type="YesNo"){
+			MessageBoxButtons dialogtype;
+			if(!Enum.TryParse<MessageBoxButtons>(type,out dialogtype))return -1;
+			return (int)MessageBox.Show(message,title,dialogtype);
+		}
 		public static string regread(string key, string valuename=""){
 			RegistryKey rkey;
 			try{

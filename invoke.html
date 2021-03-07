@@ -1,15 +1,11 @@
 <script>
 function invoke() {
     this.externalmethodnames = JSON.parse(window.external.getmethodslist()).value;
-    if (arguments.length == 0 || this.externalmethodnames.indexOf(arguments[0]) == -1) {
-        return false;
-    }
-    try {
-        var args = Array.prototype.slice.call(arguments, 1);
-        var result = window.external.callmethod(arguments[0], JS2VBArray(args));
-        var ret = IsValidJSONString(result)
-        return ret ? ret : result;
-    } catch (ex) { return "invoke error: " + ex; }
+}
+closeevent=document.createEvent("CustomEvent");
+closeevent.initCustomEvent("csharpclose",true,true,true);
+function triggercloseevent(){
+    return window.dispatchEvent(closeevent);
 }
 csharp = new invoke();
 for (var i in csharp.externalmethodnames) {

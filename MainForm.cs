@@ -58,6 +58,7 @@ namespace TLx2
 			InitializeComponent();
 			Icon = ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 			webBrowser1.Refresh(WebBrowserRefreshOption.Completely);
+			this.FormClosing += MainFormClosing;
 		}
 		[SuppressUnmanagedCodeSecurity]
 		internal static class SafeNativeMethods
@@ -107,6 +108,9 @@ namespace TLx2
 			}
 			return null;
 		}
-
+		void MainFormClosing(object sender, FormClosingEventArgs e){
+			var res=(bool?)webBrowser1.Document.InvokeScript("triggercloseevent");
+			e.Cancel |= !(bool)res;
+		}
 	}
 }

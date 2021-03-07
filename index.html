@@ -1,14 +1,25 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<title>Page title</title>
-	</head>
-	<body>
+
+<head>
+	<title>Page title</title>
+</head>
+
+<body onload=>
 	<!--TODO: give some meaningful information -->
 	<h1>you are <a onclick="csharp.alert(csharp.hostname())" href="#">here</a></h1>
 	<input type="button" onclick="try{csharp.allocconsole()}catch(ex){alert(ex)}" value="show console">
 	<input type="button" onclick="csharp.freeconsole()" value="hide console">
 	<input type="text" id="console" value="all your bases are...™">
-	<input type="button" onclick="csharp.consoleerror(document.getElementById('console').value+'\n')" value="Write console">
-	</body>
+	<input type="button" onclick="csharp.consoleerror(document.getElementById('console').value+'\n')"
+		value="Write console">
+	<script>
+		window.addEventListener("csharpclose", function (ev) {
+			var res = csharp.prompt("Window is closing.\nYou let it?");
+			if (res != 6) ev.preventDefault();
+			ev.stopImmediatePropagation();
+		});
+	</script>
+</body>
+
 </html>
