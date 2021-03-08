@@ -109,8 +109,8 @@ namespace TLx2
 			return null;
 		}
 		void MainFormClosing(object sender, FormClosingEventArgs e){
-			var res=(bool?)webBrowser1.Document.InvokeScript("triggercloseevent");
-			e.Cancel |= !(bool)res;
+			var res = (bool?)webBrowser1.Document.InvokeScript("triggercloseevent") ?? true;
+			e.Cancel = !(bool)res;
 		}
 	}
 }

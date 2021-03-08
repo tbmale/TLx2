@@ -61,7 +61,8 @@ namespace TLx2
 				}
 			}
 			File.Delete(tfp);
-			//MessageBox.Show(string.Format("{0}: {1}",mainguid,index));
+			
+			bool exitflag=false;
 			if(opts.ContainsKey("add") && File.Exists(opts["add"][0])){
 				var fp=File.Open(Path.GetFileNameWithoutExtension(opts["add"][0])+".exe",FileMode.OpenOrCreate);
 				fp.Close();
@@ -86,8 +87,11 @@ namespace TLx2
 					var cs=compressStream.ToArray();
 					o.Write(cs);
 				}
-				Environment.Exit(0);
+				exitflag=true;
 			}
+			
+			if(exitflag)
+				Environment.Exit(0);
 			if(index!=-1){
 				var fi=new FileInfo(thisass.Location);
 				var s=new BinaryReader(File.Open(thisass.Location,FileMode.Open,FileAccess.Read));
@@ -126,7 +130,6 @@ namespace TLx2
 			Application.Run(new MainForm());
 		}
 		static void Application_ApplicationExit(object o, EventArgs args){
-			Console.WriteLine("{0},{1}",o,args);
 //			WebRequest.CreateHttp(new Uri(String.Format("http://localhost:{0}/stop",_port))).GetResponseAsync();
 		}
 		static Dictionary<string,List<string>> getopts(string[] args){
