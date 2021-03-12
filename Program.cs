@@ -38,9 +38,10 @@ namespace TLx2
 //			DeleteUrlCacheEntry(String.Format("index.html"));
 			opts=getopts(args);
 			arguments=args;
+//			try{
 			var thisass=Assembly.GetExecutingAssembly();
 			string thispath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			foreach (string dll in Directory.GetFiles(thispath, "*.dll"))
+			foreach (string dll in Directory.GetFiles(thispath, "*-ScriptExtensions.dll"))
 				try{Assembly.LoadFile(dll);}catch(Exception){};
 			mainguid = "mainguid:"+thisass.GetCustomAttribute<GuidAttribute>().Value;
 			var mainguidbytes=Encoding.ASCII.GetBytes(mainguid);
@@ -61,7 +62,6 @@ namespace TLx2
 				}
 			}
 			File.Delete(tfp);
-			
 			bool exitflag=false;
 			if(opts.ContainsKey("add") && File.Exists(opts["add"][0])){
 				var fp=File.Open(Path.GetFileNameWithoutExtension(opts["add"][0])+".exe",FileMode.OpenOrCreate);
@@ -73,7 +73,7 @@ namespace TLx2
 					var compressStream=new MemoryStream();
 					var compressor = new DeflateStream(compressStream, CompressionMode.Compress);
 					var s=File.ReadAllBytes(opts["add"][0]);
-					var jss=thisass.GetManifestResourceStream( "invoke.js" );
+					var jss=thisass.GetManifestResourceStream( "invoke.html" );
 					var ms1= new MemoryStream();
 					jss.CopyTo(ms1);
 					var js=ms1.ToArray();
@@ -115,7 +115,10 @@ namespace TLx2
 					using ( var r = new StreamReader( s ) )
 						html += r.ReadToEnd();
 			}
-			
+//						}catch(Exception ex){
+//				Console.WriteLine(ex.Message);
+//			}
+
 			//release the GUI !
 			Thread uith = new Thread(new ThreadStart(startUI));
 			uith.SetApartmentState(ApartmentState.STA);

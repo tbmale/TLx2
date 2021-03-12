@@ -51,7 +51,7 @@ namespace TLx2
 			this.webBrowser1.Name = "webBrowser1";
 			this.webBrowser1.AllowWebBrowserDrop = false;
 			this.webBrowser1.IsWebBrowserContextMenuEnabled = false;
-			this.webBrowser1.WebBrowserShortcutsEnabled = false;
+//			this.webBrowser1.WebBrowserShortcutsEnabled = false;
 			this.webBrowser1.ScriptErrorsSuppressed = true;
 			this.webBrowser1.ObjectForScripting= new ScriptManager();
 			//this.webBrowser1.Size = new System.Drawing.Size(800, 600);

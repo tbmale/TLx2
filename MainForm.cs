@@ -58,6 +58,7 @@ namespace TLx2
 			InitializeComponent();
 			Icon = ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 			webBrowser1.Refresh(WebBrowserRefreshOption.Completely);
+			//webBrowser1.Navigating+=NavigateToRessource;
 			this.FormClosing += MainFormClosing;
 		}
 		[SuppressUnmanagedCodeSecurity]
@@ -111,6 +112,9 @@ namespace TLx2
 		void MainFormClosing(object sender, FormClosingEventArgs e){
 			var res = (bool?)webBrowser1.Document.InvokeScript("triggercloseevent") ?? true;
 			e.Cancel = !(bool)res;
+		}
+		void NavigateToRessource(object sender, WebBrowserNavigatingEventArgs  e){
+			MessageBox.Show(e.Url.ToString());
 		}
 	}
 }

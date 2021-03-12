@@ -7,6 +7,7 @@
  * To change this template use Tools | Options | Coding | Edit Standard Headers.
  */
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.DirectoryServices.AccountManagement;
 using System.IO;
@@ -14,6 +15,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using System.Linq;
 
 namespace TLx2
 {
@@ -22,6 +24,9 @@ namespace TLx2
 	/// </summary>
 	public static class ScriptExtensions
 	{
+		static Dictionary<string,IEnumerator<string>> dirlist=new Dictionary<string, IEnumerator<string>>();
+		static Dictionary<string,IEnumerator<string>> filelist=new Dictionary<string, IEnumerator<string>>();
+		
 		[DllImport("kernel32.dll", SetLastError=true, ExactSpelling=true)]
 		static extern bool FreeConsole();
 		[DllImport("kernel32.dll")]
@@ -154,5 +159,88 @@ namespace TLx2
 		public static string hostname(){
 			return System.Net.Dns.GetHostName();
 		}
+		public static string getfilepaths(string pathname,string filter="*")
+		{
+			string[] paths;
+			if(File.Exists(pathname))
+			{
+				paths=Directory.EnumerateFiles(Path.GetDirectoryName(pathname), filter, SearchOption.AllDirectories).ToArray();
+			}
+			else if(Directory.Exists(pathname))
+			{
+				// This path is a directory
+				paths=Directory.EnumerateFiles(pathname, filter, SearchOption.AllDirectories).ToArray();
+			}
+			else
+			{
+				return new ResultValue(string.Format("{0} is not a valid file or directory.", pathname)).Json;
+			}
+			return new ResultValue{error=false,value=paths}.Json;
+		}
+		public static string enumeratedirs(string pathname,string filter="*")
+		{
+			var key=string.Format("{0}|{1}",pathname,filter);
+			if(!dirlist.ContainsKey(key)){
+				if(File.Exists(pathname))
+				{
+					dirlist.Add(key,Directory.EnumerateDirectories(Path.GetDirectoryName(pathname), filter, SearchOption.AllDirectories).GetEnumerator());
+				}
+				else if(Directory.Exists(pathname))
+				{
+					dirlist.Add(key,Directory.EnumerateDirectories(pathname, filter, SearchOption.AllDirectories).GetEnumerator());
+				}
+				else
+				{
+					return new ResultValue(string.Format("{0} is not a valid file or directory.", pathname)).Json;
+				}
+			}
+			if(!dirlist[key].MoveNext()){
+				return new ResultValue("List exhausted").Json;
+			}
+			return dirlist[key].Current;
+			
+		}
+		public static string enumeratefiles(string pathname,string filter="*")
+		{
+			var key=string.Format("{0}|{1}",pathname,filter);
+			if(!filelist.ContainsKey(key)){
+				if(File.Exists(pathname))
+				{
+					filelist.Add(key,Directory.EnumerateFiles(Path.GetDirectoryName(pathname), filter, SearchOption.AllDirectories).GetEnumerator());
+				}
+				else if(Directory.Exists(pathname))
+				{
+					filelist.Add(key,Directory.EnumerateFiles(pathname, filter, SearchOption.AllDirectories).GetEnumerator());
+				}
+				else
+				{
+					return new ResultValue(string.Format("{0} is not a valid file or directory.", pathname)).Json;
+				}
+			}
+			if(!filelist[key].MoveNext()){
+				return new ResultValue("List exhausted").Json;
+			}
+			return filelist[key].Current;
+			
+		}
+//		static string dirpath(string pathname,string filter="*"){
+//			if(dirlist==null)
+//				getdirpaths(pathname,filter);
+//		}
+		public static string resetdirsenum(string pathname,string filter="*"){
+			var key=string.Format("{0}|{1}",pathname,filter);
+			if(!dirlist.ContainsKey(key))
+				return new ResultValue("Enumerator not initialized.").Json;
+			dirlist.Remove(key);
+			return new ResultValue{error=false,value=""}.Json;
+		}
+		public static string resetfilesenum(string pathname,string filter="*"){
+			var key=string.Format("{0}|{1}",pathname,filter);
+			if(!filelist.ContainsKey(key))
+				return new ResultValue("Enumerator not initialized.").Json;
+			filelist.Remove(key);
+			return new ResultValue{error=false,value=""}.Json;
+		}
+
 	}
 }
