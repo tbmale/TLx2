@@ -49,7 +49,8 @@ There is also a property:
 - at the end it returns an json object {false,"List exhausted"}
 - the *reset* counterparts will reset the enumerator for the specified *path*
 - beware that each call must contain the *path* argument that initiated the enumerator
-- ex: ```
+- ex:
+- ```
     var cnt=0;
     var path="c:\windows";
     var dir=csharp.enumeratedirs(path,"*",false);
@@ -59,6 +60,5 @@ There is also a property:
     }
     csharp.alert("Dirs in "+path+": "+cnt.toString());
     csharp.resetdirsenum(path);
-
 ```
 Goes without(apperently not) saying that TLx2 runs on windows...
