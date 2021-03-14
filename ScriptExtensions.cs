@@ -159,35 +159,18 @@ namespace TLx2
 		public static string hostname(){
 			return System.Net.Dns.GetHostName();
 		}
-		public static string getfilepaths(string pathname,string filter="*")
-		{
-			string[] paths;
-			if(File.Exists(pathname))
-			{
-				paths=Directory.EnumerateFiles(Path.GetDirectoryName(pathname), filter, SearchOption.AllDirectories).ToArray();
-			}
-			else if(Directory.Exists(pathname))
-			{
-				// This path is a directory
-				paths=Directory.EnumerateFiles(pathname, filter, SearchOption.AllDirectories).ToArray();
-			}
-			else
-			{
-				return new ResultValue(string.Format("{0} is not a valid file or directory.", pathname)).Json;
-			}
-			return new ResultValue{error=false,value=paths}.Json;
-		}
-		public static string enumeratedirs(string pathname,string filter="*")
+		public static string enumeratedirs(string pathname,string filter="*",bool indepth=true)
 		{
 			var key=string.Format("{0}|{1}",pathname,filter);
+			var searchopt= indepth? SearchOption.AllDirectories: SearchOption.TopDirectoryOnly;
 			if(!dirlist.ContainsKey(key)){
 				if(File.Exists(pathname))
 				{
-					dirlist.Add(key,Directory.EnumerateDirectories(Path.GetDirectoryName(pathname), filter, SearchOption.AllDirectories).GetEnumerator());
+					dirlist.Add(key,Directory.EnumerateDirectories(Path.GetDirectoryName(pathname), filter, searchopt).GetEnumerator());
 				}
 				else if(Directory.Exists(pathname))
 				{
-					dirlist.Add(key,Directory.EnumerateDirectories(pathname, filter, SearchOption.AllDirectories).GetEnumerator());
+					dirlist.Add(key,Directory.EnumerateDirectories(pathname, filter, searchopt).GetEnumerator());
 				}
 				else
 				{
@@ -200,17 +183,18 @@ namespace TLx2
 			return dirlist[key].Current;
 			
 		}
-		public static string enumeratefiles(string pathname,string filter="*")
+		public static string enumeratefiles(string pathname,string filter="*", bool indepth=true)
 		{
 			var key=string.Format("{0}|{1}",pathname,filter);
+			var searchopt= indepth ? SearchOption.AllDirectories: SearchOption.TopDirectoryOnly;
 			if(!filelist.ContainsKey(key)){
 				if(File.Exists(pathname))
 				{
-					filelist.Add(key,Directory.EnumerateFiles(Path.GetDirectoryName(pathname), filter, SearchOption.AllDirectories).GetEnumerator());
+					filelist.Add(key,Directory.EnumerateFiles(Path.GetDirectoryName(pathname), filter, searchopt).GetEnumerator());
 				}
 				else if(Directory.Exists(pathname))
 				{
-					filelist.Add(key,Directory.EnumerateFiles(pathname, filter, SearchOption.AllDirectories).GetEnumerator());
+					filelist.Add(key,Directory.EnumerateFiles(pathname, filter, searchopt).GetEnumerator());
 				}
 				else
 				{

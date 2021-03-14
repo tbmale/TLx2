@@ -12,7 +12,7 @@ For embedding your own html in it you only have to do `Tlx2.exe -add yours.html`
 
 This will result in a new *yours.exe* that will contain a compressed version of your html to be rendered at runtime.
 
-If you throw in the same directory one or more .NET dlls containing the `TLx2` namespace, all the `public static` methods of all the `public static class ScriptExtensions` classes from the `TLx2` namespace in those dlls, will be available inside your html's javascript as `csharp.<mysoontobeawsomemethod>()`.
+If you throw in the same directory one or more .NET dlls suffixed with `-ScriptExtensions.dll`, containing the `TLx2` namespace, all the `public static` methods of all the `public static class ScriptExtensions` classes from the `TLx2` namespace in those dlls, will be available inside your html's javascript as `csharp.<mysoontobeawsomemethod>()`.
 
 There are some examples of this in the *ScriptExtension.cs* in this project.
 
@@ -36,8 +36,29 @@ All the methods there are all ready to use in your own html without further .NET
 |csharp.regwrite(string key, string valuename, string value)|json|
 |csharp.run(string cmd,string arguments)|void|
 |csharp.hostname()|string|
+|csharp.enumeratefiles(string path,(optional)string filter,(optional)bool indepth)|string/json|
+|csharp.resetfilesenum(string path)|json|
+|csharp.enumeratedirs(string path,(optional)string filter,(optional)bool indepth)|string/json|
+|csharp.resetdirsenum(string path)|json|
 
 There is also a property:
 - csharp.externalmethodnames - array containg all methods names form all dll plugins available
 
+`enumeratefiles` / `enumeratedirs`
+- create an enumerator specific to the *path* argument and each call with the same  *path* returns the next value.
+- at the end it returns an json object {false,"List exhausted"}
+- the *reset* counterparts will reset the enumerator for the specified *path*
+- beware that each call must contain the *path* argument that initiated the enumerator
+- ex: ```
+    var cnt=0;
+    var path="c:\windows";
+    var dir=csharp.enumeratedirs(path,"*",false);
+    while(typeof(dir)!=="object"){
+      cnt++;
+      dir=csharp.enumeratedirs(path);
+    }
+    csharp.alert("Dirs in "+path+": "+cnt.toString());
+    csharp.resetdirsenum(path);
+
+```
 Goes without(apperently not) saying that TLx2 runs on windows...
