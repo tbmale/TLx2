@@ -1,139 +1,103 @@
 ﻿/*
  * Created by SharpDevelop.
  * User: tdragulinescu
- * Date: 10/02/2021
- * Time: 13:24
+ * Date: 31/03/2021
+ * Time: 14:42
  * 
  * To change this template use Tools | Options | Coding | Edit Standard Headers.
  */
+
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
-using System.Net;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Windows.Forms;
+using Microsoft.CSharp;
 
-namespace TLx2
-{
-	/// <summary>
-	/// Class with program entry point.
-	/// </summary>
+namespace TLx4{
 	internal static class Program
 	{
-		internal static string html="";
-		static string mainguid;
-		[DllImport("wininet.dll", SetLastError = true)]
-		private static extern long DeleteUrlCacheEntry(string lpszUrlName);
-		static public Dictionary<string,List<string>> opts;
-		static public string[] arguments;
-		/// <summary>
-		/// Program entry point.
-		/// </summary>
 		private static int Main(string[] args)
 		{
-//			DeleteUrlCacheEntry(String.Format("index.html"));
-			opts=getopts(args);
-			arguments=args;
-//			try{
 			var thisass=Assembly.GetExecutingAssembly();
-			string thispath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-			foreach (string dll in Directory.GetFiles(thispath, "*-ScriptExtensions.dll"))
-				try{Assembly.LoadFile(dll);}catch(Exception){};
-			mainguid = "mainguid:"+thisass.GetCustomAttribute<GuidAttribute>().Value;
-			var mainguidbytes=Encoding.ASCII.GetBytes(mainguid);
-			int index=-1;
-			byte[] exebytes;
-			var tfp=Path.GetTempFileName();
-			try{File.Delete(tfp);}catch(Exception ex){MessageBox.Show(ex.GetType().Name+":\n"+ex.Message);Environment.Exit(-1);}
-			try{File.Copy(thisass.Location,tfp);}catch(Exception ex){MessageBox.Show(ex.GetType().Name+":\n"+ex.Message);Environment.Exit(-1);}
-			using(var s=File.Open(tfp,FileMode.Open,FileAccess.Read)){
-				var ms=new MemoryStream();
-				s.CopyTo(ms);
-				exebytes=ms.ToArray();
-				var searcher=new BoyerMoore(mainguidbytes);
-				var indices=searcher.Search(exebytes);
-				foreach(int i in indices){
-					index=i;
-					break;
-				}
+			var opts = getopts(args);
+			Console.WriteLine("opts count:{0}",opts.Count);
+			if(opts.Count==0 || opts.ContainsKey("h")){
+				showHelp();
+				return 0;
 			}
-			File.Delete(tfp);
-			bool exitflag=false;
-			if(opts.ContainsKey("add") && File.Exists(opts["add"][0])){
-				var fp=File.Open(Path.GetFileNameWithoutExtension(opts["add"][0])+".exe",FileMode.OpenOrCreate);
-				fp.Close();
-				using(var o=new BinaryWriter(File.Open(Path.GetFileNameWithoutExtension(opts["add"][0])+".exe",FileMode.Open,FileAccess.Write))){
-					int exelen=index==-1?exebytes.Length:index;
-					o.Write(exebytes,0,exelen);
-					o.Write(mainguidbytes);
-					var compressStream=new MemoryStream();
-					var compressor = new DeflateStream(compressStream, CompressionMode.Compress);
-					var s=File.ReadAllBytes(opts["add"][0]);
-					var jss=thisass.GetManifestResourceStream( "invoke.html" );
-					var ms1= new MemoryStream();
-					jss.CopyTo(ms1);
-					var js=ms1.ToArray();
-					ms1.Close();
-					jss.Close();
-					byte[] block=new byte[s.Length+js.Length];
-					System.Buffer.BlockCopy(js,0,block,0,js.Length);
-					System.Buffer.BlockCopy(s,0,block,js.Length,s.Length);
-					compressor.Write(block,0,block.Length);
-					compressor.Close();
-					var cs=compressStream.ToArray();
-					o.Write(cs);
+			string cs;
+			using ( var s=thisass.GetManifestResourceStream( "bundle.cs" ) )
+				using ( var r = new StreamReader( s ) )
+					cs = r.ReadToEnd();
+			var tempfile = "invoke.html";
+			using ( var s=thisass.GetManifestResourceStream( "invoke.html" ) )
+				using ( var r = new StreamReader( s ) )
+					using(var fo=File.Open(tempfile,FileMode.OpenOrCreate,FileAccess.Write)){
+				var barr=Encoding.UTF8.GetBytes(r.ReadToEnd());
+				fo.Write(barr,0,barr.Length);
+			}
+			string outname = "out.exe";;
+			if(opts.ContainsKey("mainpage"))
+				outname = Path.GetFileNameWithoutExtension(opts["mainpage"][0])+".exe";
+			else{
+				Console.WriteLine("-mainpage option is mandatory and must point to a valid file");
+				return 1;
+			}
+			cs = cs.Replace("index.html",opts["mainpage"][0]);
+			string icon = "";
+			if(opts.ContainsKey("icon") && File.Exists(opts["icon"][0]))
+				icon = opts["icon"][0];
+			CSharpCodeProvider codeProvider = new CSharpCodeProvider();
+			string[] m_References = new string[] {
+				"System.dll",
+				"System.Core.dll",
+				"System.Data.dll",
+				"System.Data.DataSetExtensions.dll",
+				"System.Net.Http.dll",
+				"System.Net.dll",
+				"System.DirectoryServices.AccountManagement.dll",
+				"System.Drawing.dll",
+				"System.Runtime.Serialization.dll",
+				"System.Windows.Forms.dll",
+				"System.Xml.dll",
+				"System.Xml.Linq.dll"
+			};
+			CompilerParameters cp = new CompilerParameters{
+				GenerateExecutable = true,
+				OutputAssembly = outname,
+				GenerateInMemory = false,
+				TreatWarningsAsErrors = false,
+				CompilerOptions = "/t:winexe "
+			};
+			cp.CompilerOptions += opts.ContainsKey("debug")?"/debug ":"";
+			cp.CompilerOptions += opts.ContainsKey("icon")?("/win32icon:"+icon):"";
+			cp.EmbeddedResources.Add(opts["mainpage"][0]);
+			cp.EmbeddedResources.Add(tempfile);
+			if(opts.ContainsKey("res"))
+				foreach(string res in opts["res"])
+					cp.EmbeddedResources.Add(res);
+			cp.ReferencedAssemblies.AddRange(m_References);
+			var m_CompilerResults = codeProvider.CompileAssemblyFromSource(cp, cs);
+			if (!m_CompilerResults.Errors.HasErrors)
+			{
+				Console.WriteLine("Compilation succesful: {0}",outname);
+				File.Delete(tempfile);
+				return 0;
+			}
+			else
+			{
+				Console.WriteLine("Errors building {0} into {1}", "bundle", m_CompilerResults.PathToAssembly);
+				foreach(CompilerError ce in m_CompilerResults.Errors)
+				{
+					Console.WriteLine("  {0}", ce.ToString());
+					Console.WriteLine();
 				}
-				exitflag=true;
+				File.Delete(tempfile);
+				return 1;
 			}
 			
-			if(exitflag)
-				Environment.Exit(0);
-			if(index!=-1){
-				var fi=new FileInfo(thisass.Location);
-				var s=new BinaryReader(File.Open(thisass.Location,FileMode.Open,FileAccess.Read));
-				s.BaseStream.Seek(index+mainguid.Length,SeekOrigin.Begin);
-				var cs=s.ReadBytes(Convert.ToInt32(fi.Length)-Convert.ToInt32(index)-Convert.ToInt32(mainguidbytes.Length));
-				var compressStream=new MemoryStream(cs);
-				var decomp=new MemoryStream();
-				var decompressor = new DeflateStream(compressStream, CompressionMode.Decompress);
-				decompressor.CopyTo(decomp);
-				decompressor.Close();
-				compressStream.Close();
-				s.BaseStream.Close();
-				html=Encoding.UTF8.GetString(decomp.ToArray());
-				decomp.Close();
-			}
-			else{
-				using ( var s=thisass.GetManifestResourceStream( "index.html" ) )
-					using ( var r = new StreamReader( s ) )
-						html = r.ReadToEnd();
-				using ( var s=thisass.GetManifestResourceStream( "invoke.html" ) )
-					using ( var r = new StreamReader( s ) )
-						html += r.ReadToEnd();
-			}
-//						}catch(Exception ex){
-//				Console.WriteLine(ex.Message);
-//			}
-
-			//release the GUI !
-			Thread uith = new Thread(new ThreadStart(startUI));
-			uith.SetApartmentState(ApartmentState.STA);
-			uith.Start();
-			return 0;
-		}
-		[STAThread]
-		static void startUI(){
-			Application.EnableVisualStyles();
-			Application.SetCompatibleTextRenderingDefault(false);
-			Application.ApplicationExit += new EventHandler(Application_ApplicationExit);
-			Application.Run(new MainForm());
-		}
-		static void Application_ApplicationExit(object o, EventArgs args){
-//			WebRequest.CreateHttp(new Uri(String.Format("http://localhost:{0}/stop",_port))).GetResponseAsync();
 		}
 		static Dictionary<string,List<string>> getopts(string[] args){
 			Dictionary<string,List<string>> res = new Dictionary<string, List<string>>();
@@ -150,97 +114,14 @@ namespace TLx2
 			}
 			return res;
 		}
-		
-	}
-	public sealed class BoyerMoore
-	{
-		readonly byte[] needle;
-		readonly long[] charTable;
-		readonly long[] offsetTable;
-
-		public BoyerMoore(byte[] needle)
-		{
-			this.needle = needle;
-			this.charTable = makeByteTable(needle);
-			this.offsetTable = makeOffsetTable(needle);
-		}
-
-		public IEnumerable<long> Search(byte[] haystack)
-		{
-			if (needle.Length == 0)
-				yield break;
-
-			for (long i = needle.Length - 1; i < haystack.Length;)
-			{
-				long j;
-
-				for (j = needle.Length - 1; needle[j] == haystack[i]; --i, --j)
-				{
-					if (j != 0)
-						continue;
-
-					yield return i;
-					i += needle.Length - 1;
-					break;
-				}
-
-				i += Math.Max(offsetTable[needle.Length - 1 - j], charTable[haystack[i]]);
-			}
-		}
-
-		static long[] makeByteTable(byte[] needle)
-		{
-			const int ALPHABET_SIZE = 256;
-			long[] table = new long[ALPHABET_SIZE];
-
-			for (int i = 0; i < table.Length; ++i)
-				table[i] = needle.Length;
-
-			for (int i = 0; i < needle.Length - 1; ++i)
-				table[needle[i]] = needle.Length - 1 - i;
-
-			return table;
-		}
-
-		static long[] makeOffsetTable(byte[] needle)
-		{
-			long[] table = new long[needle.Length];
-			long lastPrefixPosition = needle.Length;
-
-			for (int i = needle.Length - 1; i >= 0; --i)
-			{
-				if (isPrefix(needle, i + 1))
-					lastPrefixPosition = i + 1;
-
-				table[needle.Length - 1 - i] = lastPrefixPosition - i + needle.Length - 1;
-			}
-
-			for (int i = 0; i < needle.Length - 1; ++i)
-			{
-				int slen = suffixLength(needle, i);
-				table[slen] = needle.Length - 1 - i + slen;
-			}
-
-			return table;
-		}
-
-		static bool isPrefix(byte[] needle, int p)
-		{
-			for (int i = p, j = 0; i < needle.Length; ++i, ++j)
-				if (needle[i] != needle[j])
-					return false;
-
-			return true;
-		}
-
-		static int suffixLength(byte[] needle, int p)
-		{
-			int len = 0;
-
-			for (int i = p, j = needle.Length - 1; i >= 0 && needle[i] == needle[j]; --i, --j)
-				++len;
-
-			return len;
+		static void showHelp(){
+			Console.WriteLine(
+				"-h\t\t this help\n" +
+				"-mainpage\t html page to embed/render (must contain all javascript code also)\n" +
+				"-debug\t\t compile with debug\n" +
+				"-icon\t\t add icon to compiled executable" +
+				"-res\t\t add file as resource to compiled executable");
+			
 		}
 	}
 }
