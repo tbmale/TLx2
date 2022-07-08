@@ -8,17 +8,17 @@ function triggercloseevent(){
     return window.dispatchEvent(closeevent);
 }
 csharp = new invoke();
-for (var i in csharp.externalmethodnames) {
+for (var i=0;i<csharp.externalmethodnames.length;i++) {
   try {
-    csharp[csharp.externalmethodnames[i]] = eval("(function(){\
-  try {\
-      var args = Array.prototype.slice.call(arguments);\
-      var result = window.external.callmethod('"+ csharp.externalmethodnames[i] + "', JS2VBArray(args));\
-      var ret = IsValidJSONString(result);\
-      return ret ? ret : result;\
-  } catch (ex) { alert('invoke error: ' + ex.stack); }\
-})");
-  } catch (ex) { alert(ex);break; }
+      csharp[csharp.externalmethodnames[i]] = eval("(function(){\
+      try {\
+        var args = Array.prototype.slice.call(arguments);\
+        var result = window.external.callmethod('"+ csharp.externalmethodnames[i] + "', JS2VBArray(args));\
+        var ret = IsValidJSONString(result);\
+        return ret ? ret : result;\
+      } catch (ex) { alert('invoke error: ' + ex.stack); }\
+      })");
+      } catch (ex) { alert(ex.stack);break; }
 }
 function JS2VBArray(objJSArray) {
     var dictionary = new ActiveXObject("Scripting.Dictionary");

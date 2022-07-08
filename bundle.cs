@@ -234,7 +234,11 @@ namespace TLx2
         var thisass = Assembly.GetExecutingAssembly();
         string thispath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         foreach (string dll in Directory.GetFiles(thispath, "*-ScriptExtensions.dll"))
-          try { Assembly.LoadFile(dll); } catch (Exception) { };
+        {
+         
+          try { Assembly.LoadFile(dll); }
+          catch (Exception ex) { MessageBox.Show(string.Format("Assembly.LoadFile({0}):{1}", dll, ex.Message)); };
+        }
         // mainguid = "mainguid:" + thisass.GetCustomAttribute<GuidAttribute>().Value;
         // var mainguidbytes = Encoding.ASCII.GetBytes(mainguid);
         using (var s = thisass.GetManifestResourceStream("index.html"))
@@ -655,7 +659,7 @@ namespace TLx2
     }
     public static string gitlab_getarchive(string url, string token, string sha1)
     {
-
+      return "not implemented";
     }
   }
 
@@ -702,8 +706,9 @@ namespace TLx2
       var q = AppDomain.CurrentDomain.GetAssemblies()
         .SelectMany(t => t.GetTypes()).Where(t => t.IsAbstract && t.IsSealed && t.IsClass && t.Namespace == "TLx2" && t.Name == "ScriptExtensions");
       var list = new List<string>();
-      q.ToList().ForEach(t => t.GetMethods().Where(m => m.IsStatic).ToList().ForEach(m => {
-        if(m.Name=="Start")
+      q.ToList().ForEach(t => t.GetMethods().Where(m => m.IsStatic).ToList().ForEach(m =>
+      {
+        if (m.Name == "Start")
           m.Invoke(null, null);
         else
           methlist[m.Name] = m;
