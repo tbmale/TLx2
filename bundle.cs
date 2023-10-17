@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Created by SharpDevelop.
  * User: tdragulinescu
  * Date: 10/02/2021
@@ -187,7 +187,7 @@ namespace TLx2
       this.webBrowser1.IsWebBrowserContextMenuEnabled = false;
       //			this.webBrowser1.WebBrowserShortcutsEnabled = false;
       this.webBrowser1.ScriptErrorsSuppressed = true;
-      this.webBrowser1.ObjectForScripting = new ScriptManager();
+      this.webBrowser1.ObjectForScripting = Program.scriptManager;
       //this.webBrowser1.Size = new System.Drawing.Size(800, 600);
       this.webBrowser1.TabIndex = 0;
       //webBrowser1.Url=new System.Uri(string.Format("http://localhost:{0}/{1}",Program._port,Program.resource));
@@ -220,22 +220,52 @@ namespace TLx2
     [DllImport("wininet.dll", SetLastError = true)]
     private static extern long DeleteUrlCacheEntry(string lpszUrlName);
     static public Dictionary<string, List<string>> opts;
+    static public List<string> assemblypaths;
     static public string[] arguments;
+    public static ScriptManager scriptManager;
+
+    /// <summary>
+    /// delegate for loading assemblies dependencies
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    static Assembly ResolveAssembly(object sender, ResolveEventArgs args)
+    {
+      var name = new AssemblyName(args.Name).Name;
+      foreach (var path in assemblypaths)
+      {
+        var asspath = Path.Combine(path, name + ".dll");
+        if (File.Exists(asspath))
+          return Assembly.LoadFile(asspath);
+      }
+      Console.WriteLine("File {0} does not exist.", name);
+      return null;
+    }
+
     /// <summary>
     /// Program entry point.
     /// </summary>
     private static int Main(string[] args)
     {
-      //			DeleteUrlCacheEntry(String.Format("index.html"));
       opts = getopts(args);
       arguments = args;
+      if (opts.ContainsKey("assemblypath"))
+      {
+        assemblypaths = opts["assemblypath"];
+      }
+      else
+      {
+        assemblypaths = new List<string> { @"c:\windows\assembly" };
+      }
+      AppDomain.CurrentDomain.AssemblyResolve += ResolveAssembly;
       try
       {
         var thisass = Assembly.GetExecutingAssembly();
         string thispath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
         foreach (string dll in Directory.GetFiles(thispath, "*-ScriptExtensions.dll"))
         {
-         
+
           try { Assembly.LoadFile(dll); }
           catch (Exception ex) { MessageBox.Show(string.Format("Assembly.LoadFile({0}):{1}", dll, ex.Message)); };
         }
@@ -258,7 +288,7 @@ namespace TLx2
         var line = frame.GetFileLineNumber();
         Console.WriteLine("line {0}: {1}", line, ex.Message);
       }
-
+      scriptManager = new ScriptManager();
       //release the GUI !
       Thread uith = new Thread(new ThreadStart(startUI));
       uith.SetApartmentState(ApartmentState.STA);
@@ -346,13 +376,13 @@ namespace TLx2
     public static string toggledebug()
     {
       _debug = _debug == false;
-      Program.form.webBrowser1.ScriptErrorsSuppressed = _debug;
+      Program.form.webBrowser1.ScriptErrorsSuppressed = !_debug;
       return new ResultValue { error = false, value = _debug }.Json;
     }
     public static string debug(bool val)
     {
       _debug = val;
-      Program.form.webBrowser1.ScriptErrorsSuppressed = _debug;
+      Program.form.webBrowser1.ScriptErrorsSuppressed = !_debug;
       return new ResultValue { error = false, value = _debug }.Json;
     }
     public static void appclose()
@@ -540,27 +570,29 @@ namespace TLx2
     //		public static string enumeratedirs(string pathname,string filter)
     {
       var key = string.Format("{0}|{1}", pathname, filter);
-      if (!dirlist.ContainsKey(key))
+      lock (dirlist)
       {
-        if (File.Exists(pathname))
+        if (!dirlist.ContainsKey(key))
         {
-          dirlist.Add(key, Directory.EnumerateDirectories(Path.GetDirectoryName(pathname), filter, deep ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).GetEnumerator());
+          if (File.Exists(pathname))
+          {
+            dirlist.Add(key, Directory.EnumerateDirectories(Path.GetDirectoryName(pathname), filter, deep ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).GetEnumerator());
+          }
+          else if (Directory.Exists(pathname))
+          {
+            dirlist.Add(key, Directory.EnumerateDirectories(pathname, filter, deep ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).GetEnumerator());
+          }
+          else
+          {
+            return new ResultValue(string.Format("{0} is not a valid file or directory.", pathname)).Json;
+          }
         }
-        else if (Directory.Exists(pathname))
+        if (!dirlist[key].MoveNext())
         {
-          dirlist.Add(key, Directory.EnumerateDirectories(pathname, filter, deep ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).GetEnumerator());
+          return new ResultValue("List exhausted").Json;
         }
-        else
-        {
-          return new ResultValue(string.Format("{0} is not a valid file or directory.", pathname)).Json;
-        }
+        return new ResultValue { error = false, value = dirlist[key].Current }.Json;
       }
-      if (!dirlist[key].MoveNext())
-      {
-        return new ResultValue("List exhausted").Json;
-      }
-      return new ResultValue { error = false, value = dirlist[key].Current }.Json;
-
     }
     public static string enumeratefiles(string pathname, bool deep, string filter = "*")
     {
@@ -609,58 +641,61 @@ namespace TLx2
     }
     public static string getresource(string resname)
     {
-      var thisass = Assembly.GetExecutingAssembly();
-      var s = thisass.GetManifestResourceStream(resname);
-      byte[] bytes;
-      if (s != null)
-        using (var r = new StreamReader(s))
-        using (var ms = new MemoryStream())
-        {
-          s.CopyTo(ms);
-          bytes = ms.ToArray();
-          return Convert.ToBase64String(bytes);
-        }
+      var q = AppDomain.CurrentDomain.GetAssemblies();
+      foreach (var thisass in q)
+      {
+        var s = thisass.GetManifestResourceStream(resname);
+        byte[] bytes;
+        if (s != null)
+          using (var r = new StreamReader(s))
+          using (var ms = new MemoryStream())
+          {
+            s.CopyTo(ms);
+            bytes = ms.ToArray();
+            return Convert.ToBase64String(bytes);
+          }
+      }
       return "";
     }
-    public static string gitlab_gettoken(string url, string user, string pass)
-    {
-      var payload = "{\"grant_type\":\"password\",\"username\":\"" + user + "\",\"password\":\"" + pass + "\"}";
-      var content = new StringContent(payload);
-      content.Headers.ContentType.MediaType = "application/json";
-      var res = http.PostAsync(url, content).Result;
-      if (res.IsSuccessStatusCode)
-        return res.Content.ReadAsStringAsync().Result;
-      return new ResultValue(res.StatusCode.ToString()).Json;
-    }
-    public static string gitlab_getapi(string url, string token)
-    {
-      var req = new HttpRequestMessage();
-      req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-      req.Method = HttpMethod.Get;
-      req.RequestUri = new Uri(url);
-      var res = http.SendAsync(req).Result;
-      if (res.IsSuccessStatusCode)
-        return res.Content.ReadAsStringAsync().Result;
-      return new ResultValue(res.StatusCode.ToString()).Json;
-    }
-    public static string gitlab_putapi(string url, string token, string payload)
-    {
-      var req = new HttpRequestMessage();
-      req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-      req.Method = HttpMethod.Put;
-      var content = new StringContent(payload);
-      content.Headers.ContentType.MediaType = "application/json";
-      req.Content = content;
-      req.RequestUri = new Uri(url);
-      var res = http.SendAsync(req).Result;
-      if (res.IsSuccessStatusCode)
-        return res.Content.ReadAsStringAsync().Result;
-      return new ResultValue(res.StatusCode.ToString()).Json;
-    }
-    public static string gitlab_getarchive(string url, string token, string sha1)
-    {
-      return "not implemented";
-    }
+    // public static string gitlab_gettoken(string url, string user, string pass)
+    // {
+    //   var payload = "{\"grant_type\":\"password\",\"username\":\"" + user + "\",\"password\":\"" + pass + "\"}";
+    //   var content = new StringContent(payload);
+    //   content.Headers.ContentType.MediaType = "application/json";
+    //   var res = http.PostAsync(url, content).Result;
+    //   if (res.IsSuccessStatusCode)
+    //     return res.Content.ReadAsStringAsync().Result;
+    //   return new ResultValue(res.StatusCode.ToString()).Json;
+    // }
+    // public static string gitlab_getapi(string url, string token)
+    // {
+    //   var req = new HttpRequestMessage();
+    //   req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    //   req.Method = HttpMethod.Get;
+    //   req.RequestUri = new Uri(url);
+    //   var res = http.SendAsync(req).Result;
+    //   if (res.IsSuccessStatusCode)
+    //     return res.Content.ReadAsStringAsync().Result;
+    //   return new ResultValue(res.StatusCode.ToString()).Json;
+    // }
+    // public static string gitlab_putapi(string url, string token, string payload)
+    // {
+    //   var req = new HttpRequestMessage();
+    //   req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+    //   req.Method = HttpMethod.Put;
+    //   var content = new StringContent(payload);
+    //   content.Headers.ContentType.MediaType = "application/json";
+    //   req.Content = content;
+    //   req.RequestUri = new Uri(url);
+    //   var res = http.SendAsync(req).Result;
+    //   if (res.IsSuccessStatusCode)
+    //     return res.Content.ReadAsStringAsync().Result;
+    //   return new ResultValue(res.StatusCode.ToString()).Json;
+    // }
+    // public static string gitlab_getarchive(string url, string token, string sha1)
+    // {
+    //   return "not implemented";
+    // }
   }
 
   [DataContract]
@@ -703,10 +738,9 @@ namespace TLx2
     public ScriptManager()
     {
       methlist = new Dictionary<string, MethodInfo>();
-      var q = AppDomain.CurrentDomain.GetAssemblies()
-        .SelectMany(t => t.GetTypes()).Where(t => t.IsAbstract && t.IsSealed && t.IsClass && t.Namespace == "TLx2" && t.Name == "ScriptExtensions");
-      var list = new List<string>();
-      q.ToList().ForEach(t => t.GetMethods().Where(m => m.IsStatic).ToList().ForEach(m =>
+      var q = AppDomain.CurrentDomain.GetAssemblies();
+      var list = q.SelectMany(t => t.GetTypes()).Where(t => t.IsAbstract && t.IsSealed && t.IsClass && t.Namespace == "TLx2" && t.Name == "ScriptExtensions").ToList();
+      list.ForEach(t => t.GetMethods().Where(m => m.IsStatic).ToList().ForEach(m =>
       {
         if (m.Name == "Start")
           m.Invoke(null, null);
@@ -735,15 +769,23 @@ namespace TLx2
       var methname = (string)objs[0];
       var callback = (string)objs[1];
       var args = (object[])objs[2];
-      if (!methlist.ContainsKey(methname)) ev.Result = new ResultValue(string.Format("Method <{0}> not found", methname)).Json;
-      ev.Result = new object[] { methlist[methname].Invoke(null, args), callback };
+      if (!methlist.ContainsKey(methname))
+      {
+        ev.Result = new ResultValue(string.Format("Method <{0}> not found", methname)).Json;
+        return;
+      }
+      lock (methlist[methname])
+      {
+        ev.Result = new object[] { methlist[methname].Invoke(null, args), callback };
+      }
     }
     void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs ev)
     {
       var res = (object[])ev.Result;
       if (ev.Error != null)
         Program.form.webBrowser1.Document.InvokeScript((string)res[1], new string[] { new ResultValue(ev.Error.Message).Json });
-      Program.form.webBrowser1.Document.InvokeScript((string)res[1], new string[] { (string)res[0] });
+      // Program.form.webBrowser1.Document.InvokeScript((string)res[1], new object[] { (string)res[0] });
+      Program.form.webBrowser1.Document.InvokeScript((string)res[1], new object[] { res[0] });
     }
     public string getmethodslist()
     {
